@@ -4,7 +4,7 @@
 //NOT google.com/nothing/after/the/dotcom.html
 const char* hostGet = "sgcs1416.cafe24.com"; 
 const char* ssid = "iptime5851";
-const char* password = "wlsguscksghks";
+const char* password = "**********";
 
 int WiFiCon() {
     // Check if we have a WiFi connection, if we don't, connect.
