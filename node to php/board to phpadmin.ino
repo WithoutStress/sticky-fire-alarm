@@ -2,9 +2,9 @@
 
 //IP or name of address root: ie: google.com
 //NOT google.com/nothing/after/the/dotcom.html
-const char* hostGet = "10.1.151.122"; 
-const char* ssid = "mipil";
-const char* password = "qwer1234";
+const char* hostGet = "sgcs1416.cafe24.com"; 
+const char* ssid = "iptime5851";
+const char* password = "wlsguscksghks";
 
 int WiFiCon() {
     // Check if we have a WiFi connection, if we don't, connect.
@@ -50,10 +50,10 @@ int WiFiCon() {
 void postData() {
 
    WiFiClient clientGet;
-   const int httpGetPort = 80;
+   const int httpGetPort = 22;
 
    //the path and file to send the data to:
-   String urlGet = "/var/www/html/num.php";
+   String urlGet = "/num.php";
 
  
   // We now create and add parameters:
@@ -61,7 +61,7 @@ void postData() {
   //String typ = "flt";
   //String nam = "temp";
   //String vint = "92"; 
-  String num = "300";
+  String num = "325";
   
   //urlGet += "?src=" + src + "&typ=" + typ + "&nam=" + nam + "&int=" + vint;
    urlGet += "?num=" + num;
@@ -72,11 +72,21 @@ void postData() {
         Serial.print("Connection failed: ");
         Serial.print(hostGet);
       } else {
-          clientGet.println("GET " + urlGet + " HTTP/1.1");
-          clientGet.print("Host: ");
-          clientGet.println(hostGet);
-          clientGet.println("User-Agent: ESP8266/1.0");
-          clientGet.println("Connection: close\r\n\r\n");
+          //clientGet.println("GET " + urlGet + " HTTP/1.1");
+          //clientGet.print("Host: ");
+          //clientGet.println(hostGet);
+          //clientGet.println("User-Agent: ESP8266/1.0");
+          //clientGet.println("Connection: close\r\n\r\n");
+          
+    clientGet.print("GET /var/www/html/num.php?"); // This
+    clientGet.print("num="); // This
+    clientGet.print(num); // And this is what we did in the testing section above. We are making a GET request just like we would from our browser but now with live data from the sensor
+    clientGet.println(" HTTP/1.1"); // Part of the GET request
+    clientGet.println("Host: sgcs1416.cafe24.com"); // IMPORTANT: If you are using XAMPP you will have to find out the IP address of your computer and put it here (it is explained in previous article). If you have a web page, enter its address (ie.Host: "www.yourwebpage.com")
+    clientGet.println("Connection: close"); // Part of the GET request telling the server that we are over transmitting the message
+    clientGet.println(); // Empty line
+    clientGet.println(); // Empty line
+  
           
           unsigned long timeoutP = millis();
           while (clientGet.available() == 0) {
@@ -90,7 +100,7 @@ void postData() {
           }
 
           //just checks the 1st line of the server response. Could be expanded if needed.
-          while(clientGet.available()){
+          while(clientGet.available()){ 
             String retLine = clientGet.readStringUntil('\r');
             Serial.println(retLine);
             break; 
@@ -106,7 +116,7 @@ void postData() {
 }
 
 void setup() {
-    Serial.begin(115200);
+    Serial.begin(57600);
     WiFiCon();
     
     delay(1000);
