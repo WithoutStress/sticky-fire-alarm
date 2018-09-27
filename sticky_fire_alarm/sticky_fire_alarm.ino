@@ -1,6 +1,7 @@
 #include <DallasTemperature.h>
 #include <ThingSpeak.h>
 #include <OneWire.h>
+#include "LedControl.h"
 
 #define ONE_WIRE_BUS D4
 OneWire oneWire(ONE_WIRE_BUS);
@@ -11,8 +12,6 @@ DallasTemperature sensors(&oneWire);
 #endif
 
 #include <ESP8266WiFi.h>
-//#include <ESP8266WiFiMulti.h>
-// Definimos parámetros
 #define WIFISID "Honey"
 #define WIFIPASS "12345678q"
 // Definimos los parámetros para el IFTTTA
@@ -35,8 +34,6 @@ DallasTemperature sensors(&oneWire);
       #include <SPI.h>
       #include <WiFi101.h>
     #endif
-    //char ssid[] = "Honey";    //  your network SSID (name) 
-    //char pass[] = "12345678q";   // your network password
     int status = WL_IDLE_STATUS;
     WiFiClient  thingclient;
   #elif defined(USE_ETHERNET_SHIELD)
@@ -59,6 +56,18 @@ const char * myWriteAPIKey = "U4HWRO0T17KHRSXI";
 const char* hostGet = "sgcs1416.cafe24.com"; 
 const char* ssid = "Honey";
 const char* password = "12345678q";
+/*
+ Now we need a LedControl to work with.
+ ***** These pin numbers will probably not work with your hardware *****
+ pin 12 is connected to the DataIn 
+ pin 11 is connected to the CLK 
+ pin 10 is connected to LOAD 
+ ***** Please set the number of devices you have *****
+ But the maximum default of 8 MAX72XX wil also work.
+ */
+LedControl lc=LedControl(D7,D5,D8,2); 
+unsigned long delaytime=30;
+int ledFlag = 0;
 
 int WiFiCon() {
     // Check if we have a WiFi connection, if we don't, connect.
@@ -108,16 +117,7 @@ void postData(String room, float num) {
 
    //the path and file to send the data to:
    String urlGet = "/write.php";
-
- 
-  // We now create and add parameters:
-  //String src = "ESP";
-  //String typ = "flt";
-  //String nam = "temp";
-  //String vint = "92"; 
-  //String num = "325";
-  
-  //urlGet += "?src=" + src + "&typ=" + typ + "&nam=" + nam + "&int=" + vint;
+   
       urlGet += "?floor=" + room + "&temp=" + String(num);
       Serial.print(">>> Connecting to host: ");
       Serial.println(hostGet);
@@ -199,6 +199,30 @@ void enviar_tweet(float valor1, int roomNum)
   client.stop();
 }
 
+void LEDControl(){
+    //read the number cascaded devices
+  int devices=lc.getDeviceCount();
+  
+  for(int address = 0; address < devices; address++) {
+    for(int col = 7; col >= 0; col--) {
+      delay(delaytime);
+      if(!(address % 2 == 1 && col < 4)) {
+        for(int row = 2; row < 6; row++) {
+          lc.setLed(address, row, col, true);
+        }
+      }
+      else {
+        for(int row = 3 - col; row < 5 + col; row++) {
+          lc.setLed(address, row, col, true);
+        }
+      }
+    }
+  }
+  delay(delaytime * 20);
+  for(int address = 0; address < devices; address++)
+    lc.clearDisplay(address);
+}
+
 void setup() {
 Serial.begin(115200);
 delay(10);
@@ -208,6 +232,18 @@ delay(1000);
 
 ThingSpeak.begin(thingclient);
 
+
+int devices=lc.getDeviceCount();
+//we have to init all devices in a loop
+for(int address=0;address<devices;address++) {
+  /*The MAX72XX is in power-saving mode on startup*/
+  lc.shutdown(address,false);
+  /* Set the brightness to a medium values */
+  lc.setIntensity(address,8);
+  /* and clear the display */
+  lc.clearDisplay(address);
+}
+  
 }
 
 void loop() {
@@ -215,17 +251,28 @@ void loop() {
   { sensors.begin();
     sensors.requestTemperatures();
     float valor1 = sensors.getTempCByIndex(0);
-    delay(1000);
+    delay(100); // 온도측정
     
     Serial.println(valor1, roomNum);
     enviar_tweet(valor1, roomNum);
-    delay(1000);
+    delay(100); // IFTTT로 http request
+
+    if(valor1 > 30){
+      ledFlag = 1;
+    }
+        
+    if(ledFlag == 1){
+       LEDControl(); 
+    }
     
     postData(String(roomNum), valor1);
-    delay(1000);
-    ThingSpeak.writeField(myChannelNumber, 1, valor1, myWriteAPIKey); 
+    delay(100); // db로 데이터 전송
+    
+    ThingSpeak.writeField(myChannelNumber, 1, valor1, myWriteAPIKey); // thinkspeak로 그래프 그리기
+  
     Serial.print("Temperature for Device 1 is: ");
     Serial.print(valor1);
   }
-  delay(5000);
+  delay(100);
 }
+
