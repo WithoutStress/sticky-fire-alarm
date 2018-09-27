@@ -1,9 +1,13 @@
 #include <DallasTemperature.h>
 #include <ThingSpeak.h>
 #include <OneWire.h>
+#include <MySQL_Connection.h>
+#include <MySQL_Cursor.h>
 #include "LedControl.h"
+#include <Servo.h>
 
-#define ONE_WIRE_BUS D4
+#define servoPin D4
+#define ONE_WIRE_BUS D3
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
@@ -56,18 +60,18 @@ const char * myWriteAPIKey = "U4HWRO0T17KHRSXI";
 const char* hostGet = "sgcs1416.cafe24.com"; 
 const char* ssid = "Honey";
 const char* password = "12345678q";
-/*
- Now we need a LedControl to work with.
- ***** These pin numbers will probably not work with your hardware *****
- pin 12 is connected to the DataIn 
- pin 11 is connected to the CLK 
- pin 10 is connected to LOAD 
- ***** Please set the number of devices you have *****
- But the maximum default of 8 MAX72XX wil also work.
- */
-LedControl lc=LedControl(D7,D5,D8,2); 
+
+LedControl lc=LedControl(D8,D6,D7,2); 
 unsigned long delaytime=30;
 int ledFlag = 0;
+
+IPAddress server_addr(183,111,125,57);   // IP of the MySQL server
+char mysqluser[] = "cse20161644";                     // MySQL user login username
+char mysqlpassword[] = "mipil";                // MySQL user login password
+WiFiClient SQLclient;
+MySQL_Connection conn((Client *)&SQLclient);
+
+Servo servo;
 
 int WiFiCon() {
     // Check if we have a WiFi connection, if we don't, connect.
@@ -165,13 +169,10 @@ void postData(String room, float num) {
 
 void enviar_tweet(float valor1, int roomNum)
 {
-
   if (client.connected())
   {
     client.stop();
   }
-
- 
   client.flush();
   
   if (client.connect(HOSTIFTTT,443)) {
@@ -191,7 +192,7 @@ void enviar_tweet(float valor1, int roomNum)
     toSend += "\r\n";
     toSend += "Connection: close\r\n\r\n";
 
-    client.print(toSend);
+    //client.print(toSend);
   }
 
   
@@ -199,6 +200,7 @@ void enviar_tweet(float valor1, int roomNum)
   client.stop();
 }
 
+bool is_LED_on = false;
 void LEDControl(){
     //read the number cascaded devices
   int devices=lc.getDeviceCount();
@@ -218,61 +220,123 @@ void LEDControl(){
       }
     }
   }
-  delay(delaytime * 20);
-  for(int address = 0; address < devices; address++)
-    lc.clearDisplay(address);
+  is_LED_on = true;
+}
+
+int mysqlSelect(){
+  row_values *row = NULL;
+  long head_count = 0;
+  char query[] = "SELECT num FROM kinkin21c.number"; // 불 붙은 보드 번호 가져오는 거로 수정
+  
+  delay(100);
+
+  Serial.println(" Selecting with a cursor dynamically allocated.");
+  // Initiate the query class instance
+  MySQL_Cursor *cur_mem = new MySQL_Cursor(&conn);
+  // Execute the query
+  cur_mem->execute(query);
+  // Fetch the columns (required) but we don't use them.
+  column_names *columns = cur_mem->get_columns();
+  delay(100);
+  // Read the row (we are only expecting the one)
+  do {
+    row = cur_mem->get_next_row();
+    if (row != NULL) {
+      head_count = atol(row->values[0]);
+    }
+  } while (row != NULL);
+  // Deleting the cursor also frees up memory used
+  delete cur_mem;
+
+  // Show the result
+  Serial.print("NYC pop = ");
+  Serial.println(head_count);
+
+  delay(500);
+}
+
+void mysqlInsert(){
+   char INSERT_SQL[] = "INSERT INTO kinkin21c.number(num) VALUES(18000)"; // 불 붙은 보드 번호 넣는거로 수정
+   delay(200);
+ 
+   Serial.println("Recording data.");
+ 
+   // Initiate the query class instance
+   MySQL_Cursor *cur_mem = new MySQL_Cursor(&conn);
+   // Execute the query
+   cur_mem->execute(INSERT_SQL);
+   // Note: since there are no results, we do not need to read any data
+   // Deleting the cursor also frees up memory used
+   delete cur_mem;
 }
 
 void setup() {
-Serial.begin(115200);
-delay(10);
-// Conectamos a la red WiFi
- WiFiCon();
-delay(1000);
+  Serial.begin(115200);
+  delay(10);
+  // Conectamos a la red WiFi
+   WiFiCon();
+  delay(1000);
 
-ThingSpeak.begin(thingclient);
-
-
-int devices=lc.getDeviceCount();
-//we have to init all devices in a loop
-for(int address=0;address<devices;address++) {
-  /*The MAX72XX is in power-saving mode on startup*/
-  lc.shutdown(address,false);
-  /* Set the brightness to a medium values */
-  lc.setIntensity(address,8);
-  /* and clear the display */
-  lc.clearDisplay(address);
-}
+  // servo code
+  servo.attach(servoPin);
+  servo.write(0);
+  delay(1000); 
+  Serial.println("Servo connection success");
+  
+  if (conn.connect(server_addr, 3306, mysqluser, mysqlpassword)) {
+     delay(1000);
+     Serial.println("DB-Connection Success.");
+  }
+  else
+    Serial.println("DB-Connection failed.");
+    
+  ThingSpeak.begin(thingclient);
+  
+  
+  int devices=lc.getDeviceCount();
+  //we have to init all devices in a loop
+  for(int address=0;address<devices;address++) {
+    /*The MAX72XX is in power-saving mode on startup*/
+    lc.shutdown(address,false);
+    /* Set the brightness to a medium values */
+    lc.setIntensity(address,8);
+    /* and clear the display */
+    lc.clearDisplay(address);
+  }
   
 }
 
 void loop() {
+  int switchOnBoard;
   if (!ejecutado)
   { sensors.begin();
     sensors.requestTemperatures();
     float valor1 = sensors.getTempCByIndex(0);
-    delay(100); // 온도측정
+    delay(1000); // 온도측정
     
-    Serial.println(valor1, roomNum);
+    //Serial.println(valor1, roomNum);
     enviar_tweet(valor1, roomNum);
-    delay(100); // IFTTT로 http request
+    delay(1000); // IFTTT로 http request
 
     if(valor1 > 30){
       ledFlag = 1;
+      mysqlInsert();
     }
-        
-    if(ledFlag == 1){
+    switchOnBoard = mysqlSelect(); // 불이 붙은 보드가 있는지 확인
+    //--------------------------------------row가 읽히면 Led, 모터 켜야함
+    if(ledFlag == 1 && is_LED_on == false) {
        LEDControl(); 
+       servo.write(180);      // Turn SG90 servo Left to 45 degrees
+       delay(1000);          // Wait 1 second
     }
     
     postData(String(roomNum), valor1);
-    delay(100); // db로 데이터 전송
+    delay(1000); // db로 데이터 전송
     
     ThingSpeak.writeField(myChannelNumber, 1, valor1, myWriteAPIKey); // thinkspeak로 그래프 그리기
   
     Serial.print("Temperature for Device 1 is: ");
     Serial.print(valor1);
   }
-  delay(100);
+  delay(1000);
 }
-
