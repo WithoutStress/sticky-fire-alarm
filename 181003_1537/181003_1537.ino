@@ -53,18 +53,20 @@ DallasTemperature sensors(&oneWire);
 WiFiClientSecure client;
 bool ejecutado = false;
 int roomNum = 202;
-int boardNum = 1;
+int boardNum = 0;
+int turnAngle1[] = {90, -90, -90, -90, 90};
+int turnAngle2[] = {90, 90, 90, 90, 90};
 
 unsigned long myChannelNumber = 559363;
 const char * myWriteAPIKey = "U4HWRO0T17KHRSXI";
 
 const char* hostGet = "sgcs1416.cafe24.com"; 
-const char* ssid = "Honey";
-const char* password = "12345678q";
+const char* ssid = "AndroidHotspot1651";
+const char* password = "qw159357";
 
 LedControl lc=LedControl(D8,D6,D7,2); 
 unsigned long delaytime=30;
-int ledFlag = 0;
+int experimentFlag = 0;
 
 IPAddress server_addr(183,111,125,57);   // IP of the MySQL server
 char mysqluser[] = "cse20161644";                     // MySQL user login username
@@ -242,6 +244,20 @@ void LEDControl(int angle){
   is_LED_on = true;
 }
 
+void turnLED(int angle) {
+   Serial.println("---------------LED---------------");
+   LEDControl(angle); 
+   Serial.println("---------------LED END---------------");
+   delay(1000);
+
+   if(angle < 0) angle += 180;
+   Serial.println("---------------SERVO---------------");
+   Serial.println(angle);
+   servo.write(angle);      // Turn SG90 servo Left to 45 degrees
+   Serial.println("---------------SERVO END---------------");
+   delay(3000);          // Wait 1 second
+}
+
 int mysqlSelect(){
   row_values *row = NULL;
   long head_count = 0;
@@ -256,7 +272,7 @@ int mysqlSelect(){
   cur_mem->execute(query);
   // Fetch the columns (required) but we don't use them.
   column_names *columns = cur_mem->get_columns();
-  delay(100);
+  delay(1000);
   // Read the row (we are only expecting the one)
   do {
     row = cur_mem->get_next_row();
@@ -272,6 +288,8 @@ int mysqlSelect(){
   Serial.println(head_count);
 
   delay(500);
+
+  return head_count;
 }
 
 void mysqlInsert(){
@@ -326,8 +344,7 @@ void setup() {
 }
 
 void loop() {
-  int turnAngle1[] = {90, -90, -90, -90, 90};
-  int turnAngle2[] = {90, 90, 90, 90, 90};
+
   int switchOnBoard;
   if (!ejecutado)
   { sensors.begin();
@@ -338,43 +355,42 @@ void loop() {
     Serial.println(valor1);
     Serial.println("---------------GET TEMPERATURE END---------------");
     delay(1000); // 온도측정
-
-    if(valor1 > 30){
-      ledFlag = 1;
+    
+    Serial.println("---------------MYSQL SELECT---------------");
+    switchOnBoard = mysqlSelect(); // 불이 붙은 보드가 있는지 확인
+    Serial.println("---------------MYSQL SELECT END---------------");
+    delay(1000); 
+    
+    if(swithOnBoard > 30){
+      experimentFlag = 1;
+      if(switchOnboard > 60)
+        experimentFlag = 2;
       Serial.println("---------------LINE---------------");
       enviar_tweet(valor1, roomNum);
       Serial.println(valor1, roomNum);
       Serial.println("---------------LINE END---------------");
       delay(1000); // IFTTT로 http request
-      //Serial.println("---------------MYSQL INSERT---------------");
-      //mysqlInsert();
-      //Serial.println("---------------MYSQL INSERT END---------------");
+      Serial.println("---------------MYSQL INSERT---------------");
+      mysqlInsert();
+      Serial.println("---------------MYSQL INSERT END---------------");
     }
     
-    //Serial.println("---------------MYSQL SELECT---------------");
-    //switchOnBoard = mysqlSelect(); // 불이 붙은 보드가 있는지 확인
-    //Serial.println("---------------MYSQL SELECT END---------------");
-
     // 돌아가는 알고리즘 추가
-    if(ledFlag == 1 && is_LED_on == false) {
-       Serial.println("---------------LED---------------");
-       LEDControl(turnAngle1[boardNum]); 
-       Serial.println("---------------LED END---------------");
-       
-       Serial.println("---------------SERVO---------------");
-       servo.write(90);      // Turn SG90 servo Left to 45 degrees
-       Serial.println("---------------SERVO END---------------");
-       delay(1000);          // Wait 1 second
+    if(switchOnBoard > 10 && is_LED_on == false) {
+      if(experimentFlag == 1)
+        turnLED(turnAngle1[boardNum]);
+      else
+        turnLED(turnAngle2[boardNum]);
     }
 
     //Serial.println("---------------POST DATA---------------");
     //postData(String(roomNum), valor1);
     //Serial.println("---------------POST DATA END---------------");
-    delay(1000); // db로 데이터 전송
+    //delay(1000); // db로 데이터 전송
 
-    Serial.println("---------------THINGSPEAK GRAPH---------------");
-    ThingSpeak.writeField(myChannelNumber, 1, valor1, myWriteAPIKey); // thinkspeak로 그래프 그리기
-    Serial.println("---------------THINGSPEAK GRAPH END---------------");
+    //Serial.println("---------------THINGSPEAK GRAPH---------------");
+    //ThingSpeak.writeField(myChannelNumber, 1, valor1, myWriteAPIKey); // thinkspeak로 그래프 그리기
+    //Serial.println("---------------THINGSPEAK GRAPH END---------------");
     
     
   }
