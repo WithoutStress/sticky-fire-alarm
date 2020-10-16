@@ -16,12 +16,12 @@ DallasTemperature sensors(&oneWire);
 #endif
 
 #include <ESP8266WiFi.h>
-#define WIFISID "Honey"
-#define WIFIPASS "12345678q"
+#define WIFISID "*****"
+#define WIFIPASS "*****"
 // Definimos los parámetros para el IFTTTA
 #define HOSTIFTTT "maker.ifttt.com"
 #define EVENTO "nodeMCU_temp"
-#define IFTTTKEY "bu_WF_erv9J8YUFbCPS2et"
+#define IFTTTKEY "*****"
 //ESP8266WiFiMulti WiFiMulti;
 
 #if defined(ARDUINO_AVR_YUN)
@@ -58,11 +58,11 @@ int turnAngle1[] = {90, -90, -90, -90, 90};
 int turnAngle2[] = {90, 90, 90, 90, 90};
 
 unsigned long myChannelNumber = 559363;
-const char * myWriteAPIKey = "U4HWRO0T17KHRSXI";
+const char * myWriteAPIKey = "*****";
 
 const char* hostGet = "sgcs1416.cafe24.com"; 
-const char* ssid = "AndroidHotspot1651";
-const char* password = "qw159357";
+const char* ssid = "*****";
+const char* password = "*****";
 
 LedControl lc=LedControl(D8,D6,D7,2); 
 unsigned long delaytime=30;
