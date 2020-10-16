@@ -56,19 +56,19 @@ int roomNum = 202;
 int boardNum = 1;
 
 unsigned long myChannelNumber = 559363;
-const char * myWriteAPIKey = "U4HWRO0T17KHRSXI";
+const char * myWriteAPIKey = "*****";
 
 const char* hostGet = "sgcs1416.cafe24.com"; 
-const char* ssid = "Honey";
-const char* password = "12345678q";
+const char* ssid = "*****";
+const char* password = "*****";
 
 LedControl lc=LedControl(D8,D6,D7,2); 
 unsigned long delaytime=30;
 int ledFlag = 0;
 
 IPAddress server_addr(183,111,125,57);   // IP of the MySQL server
-char mysqluser[] = "cse20161644";                     // MySQL user login username
-char mysqlpassword[] = "mipil";                // MySQL user login password
+char mysqluser[] = "*****";                     // MySQL user login username
+char mysqlpassword[] = "*****";                // MySQL user login password
 WiFiClient SQLclient;
 MySQL_Connection conn((Client *)&SQLclient);
 
