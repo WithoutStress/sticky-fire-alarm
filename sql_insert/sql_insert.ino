@@ -4,12 +4,12 @@
  #include <MySQL_Cursor.h>
  
  IPAddress server_addr(10,1,151,122);   // IP of the MySQL server
- char user[] = "cse20161644";                     // MySQL user login username
- char password[] = "mipil";                 // MySQL user login password
+ char user[] = "*****";                     // MySQL user login username
+ char password[] = "*****";                 // MySQL user login password
  
  // WiFi card example
- char ssid[] = "Honey";                     // your SSID
- char pass[] = "12345678q";                     // your SSID Password
+ char ssid[] = "*****";                     // your SSID
+ char pass[] = "*****";                     // your SSID Password
  
  // Sample query
  char INSERT_SQL[] = "INSERT INTO test_arduino.hello_arduino (message) VALUES ('Hello, Arduino!')";
